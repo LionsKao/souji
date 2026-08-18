@@ -1,29 +1,31 @@
 # souji
 
-本社清掃記録表 — 月次清掃チェックリストを記録する Web アプリ。
+總部打掃記錄表 —— 用來記錄月度清掃打勾狀態的網頁應用,支援日文 / 繁體中文切換。
 
-Cloudflare Pages + Pages Functions + D1 で構築。
+線上網址:[jptip.cc/souji](https://jptip.cc/souji)
 
-## 構成
+以 Cloudflare Pages + Pages Functions + D1 建置。
 
-- `index.html` — チェックリスト画面（フロントエンド）
-- `functions/api/checks/[key].js` — 月別チェック状態の取得・更新 API（`GET`/`POST` `/api/checks/:key`、`key` は `YYYY-MM` 形式）
-- `migrations/` — D1 用マイグレーション（`checks` テーブル）
-- `wrangler.jsonc` — Pages / D1 バインディング設定
+## 專案結構
 
-## 開発
+- `index.html` —— 清掃記錄表畫面(前端)
+- `functions/api/checks/[key].js` —— 各月份清掃打勾狀態的存取 API(`GET`/`POST` `/api/checks/:key`,`key` 格式為 `YYYY-MM`)
+- `migrations/` —— D1 資料庫的 migration(`checks` 資料表)
+- `wrangler.jsonc` —— Pages / D1 綁定設定
+
+## 開發
 
 ```bash
 npm install
 npm run dev
 ```
 
-`http://localhost:8888` で確認できます。
+在 `http://localhost:8888` 即可預覽。
 
-## デプロイ
+## 部署
 
 ```bash
 npm run deploy
 ```
 
-Cloudflare Pages にデプロイします。D1 データベース（`souji-db`）のバインディングが必要です。
+部署到 Cloudflare Pages。需要先綁定好 D1 資料庫(`souji-db`)。

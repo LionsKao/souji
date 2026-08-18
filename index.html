@@ -73,7 +73,7 @@
   }
   .footer-reset:hover{color:rgba(255,255,255,0.6);}
   .sheet{
-    background:var(--card); border-radius:28px; padding:26px 20px 30px;
+    background:var(--card); border-radius:28px; padding:20px;
     border:3px solid var(--ink);
     box-shadow:0 8px 0 var(--ink), 0 20px 46px rgba(6,50,45,0.28);
   }
@@ -106,7 +106,7 @@
   .toolbar button:active, .toolbar .dropdown-toggle:active{transform:translateY(4px); box-shadow:0 0 0 var(--ink);}
 
   @media (max-width:1399.98px){
-    .toolbar button#todayBtn{display:none;}
+    .toolbar{display:none;}
     #statsBox{display:none;}
     th.proxy, td.proxy{display:none;}
   }
@@ -324,15 +324,49 @@
   }
   .week-nav.active{display:flex;}
   .week-nav button{
-    width:64px; height:36px; border-radius:999px; border:2.5px solid var(--ink);
+    width:96px; height:36px; border-radius:999px; border:2.5px solid var(--ink);
     background:var(--accent-bg); color:var(--ink); font-size:20px; font-weight:800;
     cursor:pointer; line-height:1; box-shadow:0 3px 0 var(--ink);
     transition:transform .08s, box-shadow .08s;
+    display:flex; align-items:center; justify-content:center;
   }
+  .week-nav button svg{width:16px; height:16px; stroke:currentColor;}
   .week-nav button:hover{transform:translateY(2px); box-shadow:0 1px 0 var(--ink);}
   .week-nav button:active{transform:translateY(3px); box-shadow:0 0 0 var(--ink);}
   .week-nav button:focus{outline:none;}
   .week-nav-label{display:none;}
+
+  .lang-toggle{
+    position:fixed; top:16px; right:16px; z-index:1000;
+    width:36px; height:36px; border-radius:999px;
+    border:none; background:transparent;
+    font-size:18px; cursor:pointer; display:flex; align-items:center; justify-content:center;
+  }
+  .lang-toggle:focus{outline:none;}
+  .lang-toggle::after{
+    content:attr(data-tip);
+    position:absolute; right:0; top:calc(100% + 8px);
+    background:#6b7776; color:#fff; font-weight:400;
+    padding:6px 10px; border-radius:6px; font-size:12px; line-height:1.4;
+    white-space:nowrap;
+    box-shadow:0 4px 10px rgba(0,0,0,.15);
+    opacity:0; pointer-events:none; z-index:50;
+    transition:opacity .15s ease, transform .15s ease;
+    transform:translateY(4px);
+  }
+  .lang-toggle::before{
+    content:''; position:absolute; right:10px; top:100%;
+    border:5px solid transparent; border-bottom-color:#6b7776;
+    opacity:0; pointer-events:none; z-index:50;
+    transition:opacity .15s ease, transform .15s ease;
+    transform:translateY(4px);
+  }
+  .lang-toggle:hover::after, .lang-toggle:hover::before{
+    opacity:1; transform:translateY(0);
+  }
+  @media (max-width:480px){
+    .lang-toggle{top:10px; right:10px; width:32px; height:32px; font-size:16px;}
+  }
 
   .bubble-particle{
     position:fixed; bottom:-20px; border-radius:50%; pointer-events:none; z-index:0;
@@ -344,6 +378,8 @@
 </style>
 </head>
 <body class="cannot-select">
+
+<button id="langToggle" class="lang-toggle" type="button" aria-label="言語切替" data-tip="繁體中文">🌐</button>
 
 <div id="bubbleLayer"></div>
 <script>
@@ -448,9 +484,9 @@
     <div class="stats" id="statsBox"></div>
 
     <div class="week-nav" id="weekNav">
-      <button type="button" id="weekPrevBtn" aria-label="前の週">‹</button>
+      <button type="button" id="weekPrevBtn" aria-label="前の週"><svg viewBox="0 0 24 24" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg></button>
       <div class="week-nav-label" id="weekNavLabel"></div>
-      <button type="button" id="weekNextBtn" aria-label="次の週">›</button>
+      <button type="button" id="weekNextBtn" aria-label="次の週"><svg viewBox="0 0 24 24" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></button>
     </div>
 
     <div class="table-wrap">
@@ -463,7 +499,57 @@
 
 <script src="https://unpkg.com/twemoji@latest/dist/twemoji.min.js" crossorigin="anonymous"></script>
 <script>
-const WEEK = ["日","月","火","水","木","金","土"];
+let lang = 'ja';
+
+const STRINGS = {
+  ja: {
+    htmlLang: 'ja',
+    title: '本社清掃記録表',
+    metaDesc: '日々の清掃タスクを記録・管理するための社内チェックリストです。',
+    loading: 'データ読み込み中…',
+    dialogClose: '閉じる',
+    loadFail: 'データの読み込みに失敗しました。<br>ネットワーク接続を確認して<br>再度お試しください。',
+    saveFail: '保存に失敗しました。<br>ネットワーク接続を確認して<br>再度お試しください。',
+    todayBtn: '今日に戻る',
+    weekPrevAria: '前の週',
+    weekNextAria: '次の週',
+    footerReset: '設定をリセット',
+    todayOffLabel: '本日休み（土日）',
+    todayDoneLabel: '本日の完了',
+    monthRateLabel: '今月の完了率',
+    monthDoneLabel: '今月の完了数 / 全項目数',
+    weekDays: ["日","月","火","水","木","金","土"],
+    tableHeaders: ['担当','代理','項目'],
+    pinTooltip: 'クリックすると次回からこの担当の項目が一番上に表示されます',
+    weekendTooltip: '土日は休みです',
+    langToggleAria: '言語切替',
+    otherLangLabel: '繁體中文',
+  },
+  zh: {
+    htmlLang: 'zh-Hant',
+    title: '總部打掃記錄表',
+    metaDesc: '用於記錄與管理每日清掃任務的公司內部檢查表。',
+    loading: '資料讀取中…',
+    dialogClose: '關閉',
+    loadFail: '資料讀取失敗。<br>請確認網路連線後<br>再試一次。',
+    saveFail: '儲存失敗。<br>請確認網路連線後<br>再試一次。',
+    todayBtn: '回到今天',
+    weekPrevAria: '上一週',
+    weekNextAria: '下一週',
+    footerReset: '清除設定',
+    todayOffLabel: '今日休息（週末）',
+    todayDoneLabel: '今日已完成',
+    monthRateLabel: '本月完成率',
+    monthDoneLabel: '本月完成數／全部項目數',
+    weekDays: ["日","一","二","三","四","五","六"],
+    tableHeaders: ['負責人','代理','項目'],
+    pinTooltip: '點擊後，下次開啟時這位負責人的項目會顯示在最上方',
+    weekendTooltip: '週末不用打掃',
+    langToggleAria: 'Language toggle',
+    otherLangLabel: '日本語',
+  },
+};
+
 let tasks = [];
 
 function parseEmoji(el){
@@ -648,6 +734,40 @@ const defaultTasks = [
   {id:"18", section:"倉庫", main:"🌸 Yuka", proxy:"🎯 荒井", item:"🧊 冷蔵庫", desc:"外側を拭く、定期的に食品の期限を確認"},
 ];
 
+// 中国語（繁体字）表示時の section/item/desc 上書き。main/proxy（人名）は翻訳しない。
+const TASK_I18N = {
+  "1":  { section:"創辦人辦公室" },
+  "19": { section:"創辦人辦公室", item:"🐟 魚缸" },
+  "2":  { section:"董事長辦公室" },
+  "22": { section:"董事長辦公室", item:"🐟 魚缸" },
+  "3":  { section:"辦公室區域", item:"🗄️ 鐵櫃", desc:"擦拭上方" },
+  "4":  { section:"辦公室區域", desc:"擦拭外側" },
+  "5":  { section:"辦公室區域", item:"🪵 事務機旁的木製層架", desc:"擦拭表面與上面擺放的物品" },
+  "6":  { section:"辦公室區域", item:"☕ 茶水櫃", desc:"整理零食區、擦拭表面" },
+  "21": { section:"辦公室區域", item:"🌱 觀葉植物（辦公室區域）" },
+  "7":  { section:"走廊", item:"🛋️ 紅色沙發", desc:"擦拭" },
+  "8":  { section:"走廊", item:"🛡️ 盔甲", desc:"擦拭" },
+  "9":  { section:"走廊", item:"🪞 牆上的鏡子", desc:"擦拭" },
+  "10": { section:"大會議室", item:"🪑 桌椅", desc:"把椅子歸位、擦拭桌椅表面" },
+  "11": { section:"大會議室", item:"🖍️ 白板", desc:"清潔板面、清潔溝槽、確認白板筆" },
+  "12": { section:"大會議室", item:"🪟 窗邊", desc:"擦拭表面" },
+  "13": { section:"大會議室", item:"🪵 木製架", desc:"擦拭表面與上面的物品、補充杯水" },
+  "20": { section:"大會議室", item:"🪴 觀葉植物（會議室・走廊）" },
+  "14": { section:"小會議室", item:"🪑 桌椅", desc:"把椅子歸位、擦拭桌椅表面" },
+  "15": { section:"小會議室", item:"🪵 木製架", desc:"擦拭表面" },
+  "16": { section:"小會議室", item:"🪟 窗邊", desc:"擦拭表面" },
+  "17": { section:"倉庫", item:"♨️ 微波爐", desc:"擦拭外側、定期清洗內部與轉盤" },
+  "18": { section:"倉庫", item:"🧊 冰箱", desc:"擦拭外側、定期確認食品效期" },
+};
+
+function taskText(t, field){
+  if(lang === 'zh'){
+    const tr = TASK_I18N[t.id];
+    if(tr && tr[field]) return tr[field];
+  }
+  return t[field];
+}
+
 // idは手動管理の固定値（表には表示されない）。新しい担当者を追加する時は、まだ使われていない新しいidを付ける。
 // 名前・部署・項目名・並び順を変えても、idが同じなら履歴は引き継がれる。
 // 離職などでidを引き継がないようにしたい場合は、新しいidの行を追加してください。
@@ -668,6 +788,37 @@ function setPinnedPerson(name){
 }
 function clearPinned(){
   localStorage.removeItem(PIN_KEY);
+}
+
+const LANG_KEY = 'souji_lang';
+function getSavedLang(){
+  return localStorage.getItem(LANG_KEY) === 'zh' ? 'zh' : 'ja';
+}
+function setSavedLang(l){
+  localStorage.setItem(LANG_KEY, l);
+}
+
+function applyStaticStrings(l){
+  const s = STRINGS[l];
+  document.documentElement.lang = s.htmlLang;
+  document.title = s.title;
+  document.querySelector('meta[name="description"]').setAttribute('content', s.metaDesc);
+  document.querySelector('meta[property="og:title"]').setAttribute('content', s.title);
+  document.querySelector('meta[property="og:description"]').setAttribute('content', s.metaDesc);
+  document.querySelector('.hero h1').textContent = s.title;
+  document.getElementById('todayBtn').textContent = s.todayBtn;
+  document.getElementById('weekPrevBtn').setAttribute('aria-label', s.weekPrevAria);
+  document.getElementById('weekNextBtn').setAttribute('aria-label', s.weekNextAria);
+  document.getElementById('footerReset').textContent = s.footerReset;
+  document.getElementById('errorDialogClose').textContent = s.dialogClose;
+  const loadingTextEl = document.querySelector('#loadingOverlay .loading-text');
+  if(loadingTextEl) loadingTextEl.textContent = s.loading;
+  const langToggle = document.getElementById('langToggle');
+  if(langToggle){
+    langToggle.setAttribute('aria-label', s.langToggleAria);
+    langToggle.setAttribute('data-tip', s.otherLangLabel);
+    parseEmoji(langToggle);
+  }
 }
 
 function checksKey(y,m){ return `${y}-${String(m+1).padStart(2,'0')}`; }
@@ -692,7 +843,7 @@ function showLoadingOverlay(){
     celebrateFish();
     const div = document.createElement('div');
     div.id = 'loadingOverlay';
-    div.innerHTML = '<div class="loading-box"><div class="spinner"></div><div class="loading-text">データ読み込み中…</div></div>';
+    div.innerHTML = `<div class="loading-box"><div class="spinner"></div><div class="loading-text">${STRINGS[lang].loading}</div></div>`;
     document.body.appendChild(div);
   }, 200); // 讀取超過 200ms 才顯示遮罩，避免快速讀取時畫面閃一下
 }
@@ -713,7 +864,7 @@ async function loadChecksForKey(key){
   }catch(e){
     console.error('読み込みに失敗しました', e);
     checksByMonth[key] = {};
-    showErrorDialog('データの読み込みに失敗しました。<br>ネットワーク接続を確認して<br>再度お試しください。', '🦖');
+    showErrorDialog(STRINGS[lang].loadFail, '🦖');
   }
 }
 
@@ -743,7 +894,7 @@ async function saveCheck(docKey, fieldKey, value){
     if(!res.ok) throw new Error('status ' + res.status);
   }catch(e){
     console.error('保存に失敗しました', e);
-    showErrorDialog('保存に失敗しました。<br>ネットワーク接続を確認して<br>再度お試しください。', '🦖');
+    showErrorDialog(STRINGS[lang].saveFail, '🦖');
   }
 }
 
@@ -897,12 +1048,13 @@ function renderStats(){
     tasks.forEach(t=>{ if(checks[t.id+'-'+todayObj.getDate()]) todayDone++; });
   }
   const rate = total ? Math.round(done/total*100) : 0;
-  const todayLabel = (isToday && todayIsWeekend) ? '本日休み（土日）' : '本日の完了';
+  const s = STRINGS[lang];
+  const todayLabel = (isToday && todayIsWeekend) ? s.todayOffLabel : s.todayDoneLabel;
   const todayValue = (isToday && todayIsWeekend) ? '—' : `${todayDone} / ${todayTotal}`;
   const box = document.getElementById('statsBox');
   box.innerHTML = `
-    <div class="stat-card"><div class="num">${rate}%</div><div class="label">今月の完了率</div></div>
-    <div class="stat-card"><div class="num">${done} / ${total}</div><div class="label">今月の完了数 / 全項目数</div></div>
+    <div class="stat-card"><div class="num">${rate}%</div><div class="label">${s.monthRateLabel}</div></div>
+    <div class="stat-card"><div class="num">${done} / ${total}</div><div class="label">${s.monthDoneLabel}</div></div>
     <div class="stat-card"><div class="num">${todayValue}</div><div class="label">${todayLabel}</div></div>
   `;
   if(rate === 100 && lastRate !== 100) celebrateFish();
@@ -948,12 +1100,13 @@ function renderTable(){
 
   const thead = document.createElement('thead');
   const headRow = document.createElement('tr');
-  ['担当','代理','項目'].forEach(label=>{
+  const [, proxyLabel, itemLabel] = STRINGS[lang].tableHeaders;
+  STRINGS[lang].tableHeaders.forEach(label=>{
     const th = document.createElement('th');
-    const extraClass = label==='代理' ? ' proxy' : label==='項目' ? ' item' : '';
+    const extraClass = label===proxyLabel ? ' proxy' : label===itemLabel ? ' item' : '';
     th.className = 'colhead' + extraClass;
     th.textContent = label;
-    th.style.minWidth = label==='項目' ? '160px' : '90px';
+    th.style.minWidth = label===itemLabel ? '160px' : '90px';
     headRow.appendChild(th);
   });
   const now = new Date();
@@ -963,7 +1116,7 @@ function renderTable(){
     const wd = new Date(col.y, col.m, col.d).getDay();
     const th = document.createElement('th');
     th.className = 'daynum' + ((wd===0||wd===6) ? ' weekend' : '');
-    th.innerHTML = col.d + '<br>' + WEEK[wd];
+    th.innerHTML = col.d + '<br>' + STRINGS[lang].weekDays[wd];
     headRow.appendChild(th);
   });
   thead.appendChild(headRow);
@@ -994,7 +1147,7 @@ function renderTable(){
       secRow.className = 'section-row';
       const td = document.createElement('td');
       td.colSpan = 3 + columns.length;
-      td.textContent = curSection;
+      td.textContent = taskText(t, 'section');
       secRow.appendChild(td);
       tbody.appendChild(secRow);
     }
@@ -1009,7 +1162,7 @@ function buildTaskRow(t, columns, todayY, todayM, todayD){
   const mainTd = document.createElement('td');
   mainTd.className = 'rowlabel pinnable';
   mainTd.textContent = t.main;
-  mainTd.title = 'クリックすると次回からこの担当の項目が一番上に表示されます';
+  mainTd.title = STRINGS[lang].pinTooltip;
   mainTd.onclick = ()=>{
     setPinnedPerson(extractName(t.main));
     render();
@@ -1023,12 +1176,12 @@ function buildTaskRow(t, columns, todayY, todayM, todayD){
 
   const itemTd = document.createElement('td');
   itemTd.className = 'rowlabel item';
-  itemTd.appendChild(document.createTextNode(t.item));
+  itemTd.appendChild(document.createTextNode(taskText(t, 'item')));
   if(t.desc){
     const hint = document.createElement('span');
     hint.className = 'desc-hint';
     hint.textContent = '?';
-    hint.dataset.tip = t.desc;
+    hint.dataset.tip = taskText(t, 'desc');
     itemTd.appendChild(hint);
   }
   tr.appendChild(itemTd);
@@ -1046,7 +1199,7 @@ function buildTaskRow(t, columns, todayY, todayM, todayD){
     if(weekend){
       box.className = 'check offday';
       cellTd.appendChild(box);
-      cellTd.title = '土日は休みです';
+      cellTd.title = STRINGS[lang].weekendTooltip;
       // 土日はクリック不可
     }else{
       const overdue = !checks[key] && isPastDay(col.y, col.m, col.d);
@@ -1093,7 +1246,16 @@ document.getElementById('footerReset').onclick = ()=>{
   render();
 };
 
+document.getElementById('langToggle').onclick = ()=>{
+  lang = (lang === 'ja') ? 'zh' : 'ja';
+  setSavedLang(lang);
+  applyStaticStrings(lang);
+  render();
+};
+
 async function init(){
+  lang = getSavedLang();
+  applyStaticStrings(lang);
   celebrateFish();
   const now = new Date();
   year = now.getFullYear(); month = now.getMonth();
