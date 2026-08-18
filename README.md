@@ -4,7 +4,7 @@
 
 線上網址:[jptip.cc/souji](https://jptip.cc/souji)
 
-![screenshot](screenshot.jpg)
+<img src="screenshot.jpg" width="360" alt="screenshot">
 
 以 Cloudflare Pages + Pages Functions + D1 建置。
 
