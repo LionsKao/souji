@@ -4,6 +4,8 @@
 
 線上網址:[jptip.cc/souji](https://jptip.cc/souji)
 
+![screenshot](screenshot.jpg)
+
 以 Cloudflare Pages + Pages Functions + D1 建置。
 
 ## 專案結構
