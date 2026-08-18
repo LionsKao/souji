@@ -1,0 +1,12 @@
+{
+  "name": "souji",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "wrangler pages dev . --port 8888",
+    "deploy": "wrangler pages deploy ."
+  },
+  "devDependencies": {
+    "wrangler": "^4.123.0"
+  }
+}

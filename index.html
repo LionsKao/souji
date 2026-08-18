@@ -1,0 +1,1110 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" type="image/png" href="/favicon.png">
+<title>本社清掃記録表</title>
+<meta name="description" content="日々の清掃タスクを記録・管理するための社内チェックリストです。">
+<meta property="og:title" content="本社清掃記録表">
+<meta property="og:description" content="日々の清掃タスクを記録・管理するための社内チェックリストです。">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://souji.pages.dev/">
+<style>
+  :root{
+    --ink:#0e3b3a; --sub:#4c7a76; --line:#d7ede4; --line-strong:#8fd6c2;
+    --card:#faf3b8; --accent:#0ea79a; --accent-bg:#d3f3ec;
+    --warn:#e2643c; --warn-bg:#ffe9e0;
+  }
+  .cannot-select,
+  #errorDialog {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  *{box-sizing:border-box;}
+  img.emoji{height:1em; width:1em; margin:0 .05em 0 .1em; vertical-align:-0.05em;}
+  body{
+    margin:0; padding:44px 20px 60px; color:var(--ink);
+    font-family:"Noto Sans JP","Hiragino Sans","Yu Gothic",sans-serif;
+    min-height:100vh;
+    background:linear-gradient(135deg, #167e93 0%, #3fb8c4 50%, #8fe8d8 100%);
+    position:relative;
+    overflow-x:hidden;
+    display:flex; justify-content:center;
+  }
+  body::before, body::after{
+    content:''; position:fixed; border-radius:50%; pointer-events:none; z-index:0;
+    background:
+      radial-gradient(circle, transparent 53%, rgba(255,255,255,0.14) 57%, rgba(255,255,255,0.14) 61%, transparent 65%),
+      radial-gradient(circle, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 45%, transparent 72%);
+  }
+  body::before{
+    width:300px; height:300px;
+    top:-50px; right:-50px;
+  }
+  body::after{
+    width:220px; height:220px;
+    bottom:-30px; left:-30px;
+  }
+  .page{
+    position:relative; z-index:1; width:100%; max-width:1400px;
+  }
+  .hero{
+    text-align:center; margin-bottom:26px;
+  }
+  .hero .badge{
+    display:inline-block; font-size:34px; margin-bottom:6px;
+    filter:drop-shadow(0 3px 6px rgba(0,0,0,0.15));
+  }
+  .hero h1{
+    position:relative;
+    font-size:42px; font-weight:900; margin:0 0 4px; color:#fdf3ba;
+    text-shadow:3px 3px 0 #142a4d, 3px 3px 6px rgba(20,42,77,0.3);
+  }
+  .title-icon{
+    position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+    width:130px; height:130px; z-index:-1; opacity:0.32; pointer-events:none;
+  }
+  .hero .sub{color:rgba(255,255,255,0.9); font-size:13px; margin:0;}
+  .footer-reset{
+    display:table; margin:22px auto 0; font-size:12px;
+    color:rgba(255,255,255,0.35); cursor:pointer;
+  }
+  .footer-reset:hover{color:rgba(255,255,255,0.6);}
+  .sheet{
+    background:var(--card); border-radius:28px; padding:26px 20px 30px;
+    border:3px solid var(--ink);
+    box-shadow:0 8px 0 var(--ink), 0 20px 46px rgba(6,50,45,0.28);
+  }
+  .toolbar{
+    display:flex; flex-wrap:wrap; gap:10px; align-items:center; justify-content:center;
+    margin-bottom:18px;
+  }
+  .toolbar .dropdown-toggle, .toolbar button, .toolbar input{
+    font-size:14px; padding:8px 16px; border:2.5px solid var(--ink);
+    border-radius:999px; background:var(--accent-bg); color:var(--ink); cursor:pointer;
+    font-weight:700; height:40px;
+    box-shadow:0 4px 0 var(--ink);
+    transition:transform .08s, box-shadow .08s;
+  }
+  .toolbar .dropdown-toggle, .toolbar button#todayBtn{
+    width:110px; text-align:center;
+  }
+  .toolbar .dropdown-toggle{
+    position:relative; padding-right:30px;
+  }
+  .toolbar .dropdown-toggle::after{
+    content:''; position:absolute; right:15px; top:50%;
+    width:7px; height:7px;
+    border-right:2px solid var(--sub); border-bottom:2px solid var(--sub);
+    transform:translateY(-65%) rotate(45deg);
+  }
+  .toolbar button#todayBtn{background:var(--accent); color:#fff;}
+  .toolbar button:hover, .toolbar .dropdown-toggle:hover{transform:translateY(2px); box-shadow:0 2px 0 var(--ink);}
+  .toolbar .dropdown-toggle:focus, .toolbar button:focus{outline:none;}
+  .toolbar button:active, .toolbar .dropdown-toggle:active{transform:translateY(4px); box-shadow:0 0 0 var(--ink);}
+
+  @media (max-width:1399.98px){
+    .toolbar button#todayBtn{display:none;}
+    #statsBox{display:none;}
+    th.proxy, td.proxy{display:none;}
+  }
+  @media (max-width:819.98px){
+    th.item, td.item{display:none;}
+  }
+
+  .dropdown{position:relative;}
+  .dropdown-menu{
+    display:none;
+    position:absolute; top:calc(100% + 8px); left:50%; transform:translateX(-50%);
+    background:var(--card); border:2.5px solid var(--ink); border-radius:16px;
+    box-shadow:0 6px 0 var(--ink), 0 10px 20px rgba(6,50,45,0.25);
+    padding:6px; min-width:110px; max-height:240px; overflow-y:auto;
+    z-index:50;
+  }
+  .dropdown-menu.open{display:block;}
+  .dropdown-item{
+    padding:8px 14px; border-radius:10px; text-align:center;
+    font-weight:600; color:var(--ink); cursor:pointer; white-space:nowrap;
+  }
+  .dropdown-item:hover{background:var(--accent-bg);}
+  .dropdown-item.selected{background:var(--accent); color:#fff;}
+  #monthMenu{
+    grid-template-columns:repeat(4, minmax(0, 1fr)); gap:6px;
+    min-width:270px; max-height:none; overflow:visible;
+  }
+  #monthMenu.open{display:grid;}
+  #monthMenu .dropdown-item{padding:8px 10px; white-space:nowrap;}
+  .stats{display:flex; gap:12px; margin-bottom:18px; flex-wrap:wrap; justify-content:center;}
+  .stat-card{
+    flex:0 1 220px; max-width:240px;
+    background:var(--accent-bg); border-radius:16px;
+    padding:14px 16px; display:flex; flex-direction:column; align-items:center;
+    text-align:center; gap:4px;
+    border:2.5px solid var(--ink);
+    box-shadow:0 4px 0 var(--ink);
+    cursor:pointer;
+    transition:transform .08s, box-shadow .08s;
+  }
+  .stat-card .icon{font-size:22px; line-height:1;}
+  .stat-card .num{font-size:24px; font-weight:800; color:#0a5a52; line-height:1.1;}
+  .stat-card .label{font-size:11.5px; color:var(--sub); font-weight:600;}
+  .stat-card:hover{transform:translateY(2px); box-shadow:0 2px 0 var(--ink);}
+  .stat-card:active{transform:translateY(4px); box-shadow:0 0 0 var(--ink);}
+  .table-wrap{
+    overflow-x:auto; overflow-y:visible; border:3px dashed var(--ink); border-radius:18px; background:var(--card);
+    scrollbar-width:thin; scrollbar-color:var(--accent-bg) transparent;
+    width:fit-content; max-width:100%; margin:0 auto;
+  }
+  @media (max-width:1399.98px){
+    .table-wrap{width:100%;}
+    table{width:100%;}
+  }
+  .table-wrap::-webkit-scrollbar{height:10px;}
+  .table-wrap::-webkit-scrollbar-track{background:transparent;}
+  .table-wrap::-webkit-scrollbar-thumb{background:var(--accent-bg); border-radius:8px; border:2px solid var(--line-strong);}
+  .table-wrap::-webkit-scrollbar-thumb:hover{background:#bfeee0;}
+  .table-wrap.week-anim-next{animation:weekSlideNext .25s ease;}
+  .table-wrap.week-anim-prev{animation:weekSlidePrev .25s ease;}
+  @keyframes weekSlideNext{from{opacity:0; transform:translateX(16px);} to{opacity:1; transform:translateX(0);}}
+  @keyframes weekSlidePrev{from{opacity:0; transform:translateX(-16px);} to{opacity:1; transform:translateX(0);}}
+  table{border-collapse:collapse; font-size:13px; white-space:nowrap;}
+  th,td{border:1px solid var(--line); padding:0; text-align:center;}
+  thead th{
+    background:#eef9f4; color:var(--ink); font-weight:700; padding:6px 4px;
+    position:sticky; top:0; z-index:3;
+  }
+  th.daynum{font-size:13px; width:30px; min-width:30px;}
+  th.weekend{background:#e2ede4; color:var(--sub);}
+  .cell.today-col{background:var(--accent-bg);}
+  .colhead{position:sticky; top:0; z-index:4; background:#eef9f4; border-radius:0;}
+  thead tr th:first-child{border-top-left-radius:16px;}
+  thead tr th:last-child{border-top-right-radius:16px;}
+  .rowlabel{
+    text-align:left; padding:8px 10px; font-weight:500; background:#fff;
+    position:sticky; left:0; z-index:2; min-width:90px;
+  }
+  .rowlabel.proxy{position:sticky; left:90px; z-index:2; color:var(--sub); min-width:80px;}
+  .rowlabel.item{position:sticky; left:170px; z-index:2; min-width:200px;}
+  .desc-hint{
+    display:inline-flex; align-items:center; justify-content:center;
+    width:16px; height:16px; margin-left:5px;
+    border-radius:50%; border:1px solid var(--line-strong);
+    font-size:10px; color:var(--sub); cursor:help; flex-shrink:0;
+    vertical-align:middle;
+    position:relative;
+  }
+  .desc-hint::after{
+    content:attr(data-tip);
+    position:absolute; left:50%; bottom:calc(100% + 8px);
+    transform:translate(-50%, 4px);
+    background:#6b7776; color:#fff; font-weight:400;
+    padding:6px 10px; border-radius:6px; font-size:12px; line-height:1.4;
+    white-space:normal; width:max-content; max-width:220px; text-align:left;
+    box-shadow:0 4px 10px rgba(0,0,0,.15);
+    opacity:0; pointer-events:none; z-index:50;
+    transition:opacity .15s ease, transform .15s ease;
+  }
+  .desc-hint::before{
+    content:''; position:absolute; left:50%; bottom:100%;
+    transform:translate(-50%, 4px);
+    border:5px solid transparent; border-top-color:#6b7776;
+    opacity:0; pointer-events:none; z-index:50;
+    transition:opacity .15s ease, transform .15s ease;
+  }
+  .desc-hint:hover::after, .desc-hint:hover::before{
+    opacity:1; transform:translate(-50%, 0);
+  }
+  .section-row td{
+    background:#e3f6ee; font-weight:700; text-align:left; padding:6px 10px;
+    position:sticky; left:0; z-index:2; color:#0a5a52;
+  }
+  .section-row .stretch{position:static;}
+  .pinned-row td{
+    background:var(--accent-bg); font-weight:700; text-align:left; padding:6px 10px;
+    position:sticky; left:0; z-index:2; color:var(--ink);
+  }
+  .rowlabel.pinnable{cursor:pointer;}
+  .rowlabel.pinnable:hover{background:#f3faf7;}
+  .cell{cursor:pointer; width:30px; min-width:30px; height:30px; background:#fff;}
+  .cell.weekend-col{background:#e2ede4; cursor:not-allowed;}
+  .check{
+    width:22px; height:22px; border-radius:50%;
+    margin:0 auto; display:flex; align-items:center; justify-content:center;
+    font-size:22px; line-height:1; background:#fff; border:1.5px dashed var(--line-strong);
+    transition:background 0.15s, border-color 0.15s;
+  }
+  .check.done{
+    border:none; background:transparent;
+  }
+  .check.overdue{
+    border-color:#d98a76;
+  }
+  .check.offday{background:#d9d7cd; border-style:solid; border-color:#c7c5bb; color:transparent;}
+
+  .pop-bubble{
+    position:fixed; pointer-events:none; z-index:6;
+    border-radius:50%; background:transparent;
+    border:1.5px solid rgba(255,255,255,0.85);
+    box-shadow: inset 0 0 3px rgba(255,255,255,0.3);
+    transform:translate(-50%,-50%);
+    animation: popBubbleBurst .32s ease-out forwards;
+  }
+  @keyframes popBubbleBurst{
+    0%{ transform:translate(-50%,-50%) translate(0,0) scale(0.3); opacity:0; }
+    15%{ opacity:1; }
+    100%{ transform:translate(-50%,-50%) translate(var(--bx), var(--by)) scale(1); opacity:1; }
+  }
+
+  .fish-parade{position:fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:9999; overflow:hidden;}
+  .fish-parade .fish{position:absolute; left:-60px; animation:fishSwim 2.6s ease-in-out forwards;}
+  @keyframes fishSwim{
+    0%{ transform:translateX(0) scaleX(-1) translateY(0); }
+    50%{ transform:translateX(55vw) scaleX(-1) translateY(-14px); }
+    100%{ transform:translateX(115vw) scaleX(-1) translateY(0); }
+  }
+
+  #loadingOverlay{
+    position:fixed; top:0; left:0; width:100%; height:100%;
+    background:rgba(255,255,255,0.75);
+    display:flex; align-items:center; justify-content:center;
+    z-index:9999;
+    opacity:1; transition:opacity .25s ease;
+  }
+  #loadingOverlay.fade-out{opacity:0;}
+  #loadingOverlay .loading-box{
+    display:flex; flex-direction:column; align-items:center; gap:12px;
+  }
+  #loadingOverlay .spinner{
+    width:34px; height:34px; border:3px solid var(--line-strong);
+    border-top-color:var(--accent); border-radius:50%;
+    animation:spin 0.8s linear infinite;
+  }
+  #loadingOverlay .loading-text{
+    font-size:20px; color:var(--ink); font-weight:500;
+  }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+
+  #errorDialog{
+    background:var(--card); border:3px solid var(--ink); border-radius:20px;
+    box-shadow:0 8px 0 var(--ink), 0 20px 46px rgba(6,50,45,0.28);
+    padding:26px 28px; width:90%; max-width:380px; text-align:center;
+    font-family:"Noto Sans JP","Hiragino Sans","Yu Gothic",sans-serif;
+    overflow:visible;
+  }
+  #errorDialog::backdrop{background:rgba(6,50,45,0.45);}
+  #errorDialog p{color:var(--ink); font-size:14px; line-height:1.6; margin:0 0 20px;}
+  #errorDialog .error-icon{font-size:40px; margin-bottom:8px; display:inline-block;}
+  #errorDialog .error-icon.flip-x{transform:scaleX(-1);}
+  #errorDialog .error-icon.dino-jump{animation:dinoJump 0.5s ease-out;}
+  @keyframes dinoJump{
+    0%{ transform:scaleX(-1) translateY(0); }
+    40%{ transform:scaleX(-1) translateY(-22px); }
+    100%{ transform:scaleX(-1) translateY(0); }
+  }
+  #errorDialog .error-icon.dino-escape{animation:dinoEscape linear forwards;}
+  @keyframes dinoEscape{
+    from{ transform:scaleX(-1) translateX(0); }
+    to{ transform:scaleX(-1) translateX(-150vw); }
+  }
+  #errorDialogClose{
+    font-size:14px; padding:8px 26px; border:2.5px solid var(--ink);
+    border-radius:999px; background:var(--accent); color:#fff; cursor:pointer;
+    font-weight:700; box-shadow:0 4px 0 var(--ink);
+    transition:transform .08s, box-shadow .08s;
+  }
+  #errorDialogClose:hover{transform:translateY(2px); box-shadow:0 2px 0 var(--ink);}
+  #errorDialogClose:active{transform:translateY(4px); box-shadow:0 0 0 var(--ink);}
+  #errorDialogClose:focus{outline:none; }
+
+  .week-nav{
+    display:none; align-items:center; justify-content:center; gap:14px;
+    margin-bottom:14px;
+  }
+  .week-nav.active{display:flex;}
+  .week-nav button{
+    width:64px; height:36px; border-radius:999px; border:2.5px solid var(--ink);
+    background:var(--accent-bg); color:var(--ink); font-size:20px; font-weight:800;
+    cursor:pointer; line-height:1; box-shadow:0 3px 0 var(--ink);
+    transition:transform .08s, box-shadow .08s;
+  }
+  .week-nav button:hover{transform:translateY(2px); box-shadow:0 1px 0 var(--ink);}
+  .week-nav button:active{transform:translateY(3px); box-shadow:0 0 0 var(--ink);}
+  .week-nav button:focus{outline:none;}
+  .week-nav-label{display:none;}
+
+  .bubble-particle{
+    position:fixed; bottom:-20px; border-radius:50%; pointer-events:none; z-index:0;
+    background:transparent;
+    border:1.5px solid rgba(255,255,255,0.6);
+    box-shadow: inset 0 0 4px rgba(255,255,255,0.25);
+  }
+
+</style>
+</head>
+<body class="cannot-select">
+
+<div id="bubbleLayer"></div>
+<script>
+  // 氣泡數量控制：改這個數字就能增加或減少氣泡總數
+  const BUBBLE_COUNT = 35;
+  // 氣泡上升速度控制 (px/秒)，每顆氣泡會在這個範圍內隨機挑一個速度
+  const BUBBLE_RISE_SPEED_MIN = 30; // 最慢的上升速度
+  const BUBBLE_RISE_SPEED_MAX = 50; // 最快的上升速度
+
+  function getRandomArbitrary(min, max){
+    return Math.random() * (max - min) + min;
+  }
+
+  function getOrCreateBubbleCSSElement(){
+    let el = document.getElementById('bubble-css');
+    if(el) return el;
+    el = document.createElement('style');
+    el.id = 'bubble-css';
+    document.head.appendChild(el);
+    return el;
+  }
+
+  function createBubbles(count){
+    const layer = document.getElementById('bubbleLayer');
+    const fragment = document.createDocumentFragment();
+    let cssRule = '';
+
+    for(let i = 0; i < count; i++){
+      const el = document.createElement('div');
+      el.className = 'bubble-particle bubble-' + i;
+
+      const size = getRandomArbitrary(12, 30); // 12px ~ 30px
+      el.style.width = size + 'px';
+      el.style.height = size + 'px';
+      fragment.appendChild(el);
+
+      const startX = Math.random() * 100;       // 起始水平位置 (vw)
+      const drift = getRandomArbitrary(-8, 8);   // 上升過程中左右飄移的幅度 (vw)
+      const midX = drift * 0.5;
+      const speed = getRandomArbitrary(BUBBLE_RISE_SPEED_MIN, BUBBLE_RISE_SPEED_MAX); // px/秒
+      const duration = ((window.innerHeight * 1.15) / speed).toFixed(2);   // 依速度換算成這一輪上升花費的時間
+      const delay = (Math.random() * duration * -1).toFixed(2); // 負延遲：一開始就散布在半空中，不會同時從底部冒出
+      const opacity = getRandomArbitrary(0.25, 0.6).toFixed(2);
+
+      cssRule += `
+        .bubble-${i}{
+          left:${startX}vw;
+          opacity:${opacity};
+          animation: bubble-rise-${i} ${duration}s ${delay}s linear infinite;
+        }
+        @keyframes bubble-rise-${i}{
+          0%{ transform: translate(0, 0); }
+          50%{ transform: translate(${midX}vw, -55vh); }
+          100%{ transform: translate(${drift}vw, -115vh); }
+        }
+      `;
+    }
+
+    layer.appendChild(fragment);
+    getOrCreateBubbleCSSElement().innerHTML = cssRule;
+  }
+
+  createBubbles(BUBBLE_COUNT);
+</script>
+
+
+
+<div id="loadingOverlay">
+  <div class="loading-box">
+    <div class="spinner"></div>
+    <div class="loading-text">データ読み込み中…</div>
+  </div>
+</div>
+
+<dialog id="errorDialog">
+  <div class="error-icon">😰</div>
+  <p id="errorDialogMsg"></p>
+  <button id="errorDialogClose">閉じる</button>
+</dialog>
+
+<div class="page">
+  <div class="hero">
+    <h1>
+      本社清掃記録表
+    </h1>
+    <p class="sub"></p>
+  </div>
+
+  <div class="sheet">
+    <div class="toolbar">
+      <div class="dropdown">
+        <button type="button" class="dropdown-toggle" id="yearToggle"></button>
+        <div class="dropdown-menu" id="yearMenu"></div>
+      </div>
+      <div class="dropdown">
+        <button type="button" class="dropdown-toggle" id="monthToggle"></button>
+        <div class="dropdown-menu" id="monthMenu"></div>
+      </div>
+      <button id="todayBtn">今日に戻る</button>
+    </div>
+
+    <div class="stats" id="statsBox"></div>
+
+    <div class="week-nav" id="weekNav">
+      <button type="button" id="weekPrevBtn" aria-label="前の週">‹</button>
+      <div class="week-nav-label" id="weekNavLabel"></div>
+      <button type="button" id="weekNextBtn" aria-label="次の週">›</button>
+    </div>
+
+    <div class="table-wrap">
+      <table id="mainTable"></table>
+    </div>
+  </div>
+
+  <div id="footerReset" class="footer-reset">設定をリセット</div>
+</div>
+
+<script src="https://unpkg.com/twemoji@latest/dist/twemoji.min.js" crossorigin="anonymous"></script>
+<script>
+const WEEK = ["日","月","火","水","木","金","土"];
+let tasks = [];
+
+function parseEmoji(el){
+  if(window.twemoji) twemoji.parse(el); // Twemoji 載入失敗時就維持原生 emoji，不中斷程式
+}
+
+let dinoJumpTimer = null, dinoEscapeTimer = null;
+function stopDinoEscape(){
+  clearTimeout(dinoJumpTimer);
+  clearTimeout(dinoEscapeTimer);
+}
+function showErrorDialog(message, icon = '😰'){
+  document.getElementById('errorDialogMsg').innerHTML = message;
+  const iconEl = document.querySelector('#errorDialog .error-icon');
+  stopDinoEscape();
+  iconEl.classList.remove('dino-jump', 'dino-escape');
+  iconEl.style.animationDuration = '';
+  iconEl.textContent = icon;
+  iconEl.classList.toggle('flip-x', icon === '🦖');
+  parseEmoji(iconEl);
+  document.getElementById('errorDialog').showModal();
+  if(icon === '🦖'){
+    dinoJumpTimer = setTimeout(()=>{
+      iconEl.classList.add('dino-jump');
+      dinoEscapeTimer = setTimeout(()=>{
+        iconEl.classList.remove('dino-jump');
+        const speedPxPerSec = 400; // 固定速度，螢幕越寬時長越長，速度不變
+        const distancePx = window.innerWidth * 1.5;
+        iconEl.style.animationDuration = (distancePx / speedPxPerSec) + 's';
+        iconEl.classList.add('dino-escape');
+      }, 500);
+    }, 5000);
+  }
+}
+document.getElementById('errorDialogClose').onclick = ()=>{
+  stopDinoEscape();
+  document.getElementById('errorDialog').close();
+};
+let checksByMonth = {}; // "YYYY-MM" -> {fieldKey: true}
+let year, month;
+let weekStart = null; // 週表示中の月曜日（Dateオブジェクト）
+let lastRate = -1;
+const WEEK_VIEW_BREAKPOINT = 1400; // これ以上の画面幅なら月全体の総表を表示
+
+function getViewMode(){
+  return window.innerWidth >= WEEK_VIEW_BREAKPOINT ? 'month' : 'week';
+}
+
+function addDays(date, n){
+  const d = new Date(date);
+  d.setDate(d.getDate() + n);
+  return d;
+}
+
+function startOfWeekMonday(date){
+  const d = new Date(date);
+  d.setHours(0,0,0,0);
+  const wd = d.getDay(); // 0=日 ... 6=土
+  const diff = (wd === 0) ? -6 : (1 - wd);
+  return addDays(d, diff);
+}
+
+function getChecksForMonth(y, m){
+  return checksByMonth[checksKey(y,m)] || {};
+}
+
+const POP_BUBBLE_COUNT = 8;       // 打勾時噴出的氣泡數量，改這個數字就能增加或減少
+// 打勾氣泡最後往上飄的速度 (px/秒)，每顆會在這個範圍內隨機挑一個速度
+const POP_BUBBLE_RISE_SPEED_MIN = 30; // 最慢的上升速度
+const POP_BUBBLE_RISE_SPEED_MAX = 55; // 最快的上升速度
+
+function burstBubblePop(x, y){
+  for(let i=0; i<POP_BUBBLE_COUNT; i++){
+    const el = document.createElement('div');
+    el.className = 'pop-bubble';
+    const size = 4 + Math.random()*5; // 比背景氣泡（12~30px）小很多
+    el.style.width = size + 'px';
+    el.style.height = size + 'px';
+    el.style.left = x + 'px';
+    el.style.top = y + 'px';
+
+    const angle = Math.random()*Math.PI*2;
+    const burstDist = 18 + Math.random()*22; // 噴出（拋物線四散）的距離
+    const bx = Math.cos(angle)*burstDist;
+    const by = Math.sin(angle)*burstDist;
+    el.style.setProperty('--bx', bx+'px');
+    el.style.setProperty('--by', by+'px');
+    document.body.appendChild(el);
+
+    setTimeout(()=>{ // 噴出動畫(320ms) + 停留(150ms) 後，換成往上飄
+      el.style.animation = 'none';
+      el.style.transform = `translate(-50%,-50%) translate(${bx}px, ${by}px) scale(1)`;
+      void el.offsetHeight; // 強制瀏覽器先套用上面這個狀態，避免下面的轉場動畫被跳過
+      const riseDistance = 60 + Math.random()*50; // 往上飄的距離
+      const sway = (Math.random()-0.5)*30; // 左右飄移，跟背景氣泡一樣的感覺
+      const speed = getRandomArbitrary(POP_BUBBLE_RISE_SPEED_MIN, POP_BUBBLE_RISE_SPEED_MAX);
+      const riseDuration = riseDistance / speed;
+      const fadeDuration = riseDuration * 0.45;
+      const fadeDelay = riseDuration * 0.55;
+      el.style.transition = `transform ${riseDuration}s ease-in, opacity ${fadeDuration}s ease-in ${fadeDelay}s`;
+      el.style.transform = `translate(-50%,-50%) translate(${bx+sway}px, ${by-riseDistance}px) scale(0.85)`;
+      el.style.opacity = '0';
+      setTimeout(()=>el.remove(), riseDuration*1000 + 500);
+    }, 470);
+  }
+}
+
+const FISH_WEIGHTS = [
+  ['🐟', 39.5],
+  ['🐠', 24],
+  ['🐡', 9],
+  ['🦈', 9],
+  ['🐢', 9],
+  ['🦐', 9],
+  ['🦖', 0.5], // 隱藏版
+];
+function pickFishEmoji(){
+  const r = Math.random()*100;
+  let cumulative = 0;
+  for(const [emoji, weight] of FISH_WEIGHTS){
+    cumulative += weight;
+    if(r < cumulative) return emoji;
+  }
+  return FISH_WEIGHTS[0][0];
+}
+
+function celebrateFish(){
+  const parade = document.createElement('div');
+  parade.className = 'fish-parade';
+  const count = 8;
+  const speedPxPerSec = 300; // 固定速度，螢幕越寬時長越長，速度不變
+  const distancePx = window.innerWidth * 1.15 + 60;
+  const duration = distancePx / speedPxPerSec;
+  for(let i=0; i<count; i++){
+    const f = document.createElement('span');
+    f.textContent = pickFishEmoji();
+    f.className = 'fish';
+    f.style.top = (10 + Math.random()*70) + '%';
+    f.style.fontSize = (34 + Math.random()*22) + 'px';
+    f.style.animationDelay = (i*0.18) + 's';
+    f.style.animationDuration = duration + 's';
+    parade.appendChild(f);
+  }
+  document.body.appendChild(parade);
+  parseEmoji(parade);
+  setTimeout(()=>parade.remove(), duration*1000 + count*180 + 200);
+}
+
+const IDLE_MS = 20000;
+let idleTimer = null;
+function resetIdleTimer(){
+  clearTimeout(idleTimer);
+  idleTimer = setTimeout(()=>{ celebrateFish(); resetIdleTimer(); }, IDLE_MS);
+}
+['mousemove','mousedown','keydown','scroll','touchstart'].forEach(evt=>{
+  document.addEventListener(evt, resetIdleTimer);
+});
+resetIdleTimer();
+
+const defaultTasks = [
+  {id:"1", section:"創業者オフィス", main:"👑 冠瑾", proxy:"🌸 Yuka", item:"🏢 全體", desc:""},
+  {id:"19", section:"創業者オフィス", main:"🦁 Leo", proxy:"⚡ 維宸", item:"🐟 水槽", desc:""},
+  {id:"2", section:"会長室", main:"👑 冠瑾", proxy:"🌸 Yuka", item:"👑 全體", desc:""},
+  {id:"22", section:"会長室", main:"🦁 Leo", proxy:"⚡ 維宸", item:"🐟 水槽", desc:""},
+  {id:"3", section:"オフィスエリア", main:"👔 Lu哥", proxy:"🌿 Kaori", item:"🗄️ スチールキャビネット", desc:"上部を拭く"},
+  {id:"4", section:"オフィスエリア", main:"🌿 Kaori", proxy:"👔 Lu哥", item:"🖨️ 事務機", desc:"外側を拭く"},
+  {id:"5", section:"オフィスエリア", main:"🌼 淑貞", proxy:"🎀 愷芬", item:"🪵 事務機横の木製棚", desc:"表面と上に置いてある物を拭く"},
+  {id:"6", section:"オフィスエリア", main:"🎀 愷芬", proxy:"🌼 淑貞", item:"☕ 茶水棚", desc:"お菓子コーナーの整理、表面を拭く"},
+  {id:"21", section:"オフィスエリア", main:"⛩️ 阿部", proxy:"🍀 佩諭", item:"🌱 観葉植物（オフィスエリア）", desc:""},
+  {id:"7", section:"廊下", main:"⚡ 維宸", proxy:"💖 陳心", item:"🛋️ 赤いソファ", desc:"拭く"},
+  {id:"8", section:"廊下", main:"💖 陳心", proxy:"⚡ 維宸", item:"🛡️ 甲冑", desc:"拭く"},
+  {id:"9", section:"廊下", main:"🎯 荒井", proxy:"🌟 小攸", item:"🪞 壁の鏡", desc:"拭く"},
+  {id:"10", section:"大会議室", main:"🍵 湯湯", proxy:"☀️ Ray", item:"🪑 テーブルと椅子", desc:"椅子を戻す、テーブルと椅子の表面を拭く"},
+  {id:"11", section:"大会議室", main:"🎨 文綺", proxy:"🍵 湯湯", item:"🖍️ ホワイトボード", desc:"板面の清掃、溝の清掃、ホワイトボードペンの確認"},
+  {id:"12", section:"大会議室", main:"🗻 吉田", proxy:"🎨 文綺", item:"🪟 窓辺", desc:"表面を拭く"},
+  {id:"13", section:"大会議室", main:"☀️ Ray", proxy:"🗻 吉田", item:"🪵 木製棚", desc:"表面と上の物を拭く、コップの水を補充"},
+  {id:"20", section:"大会議室", main:"🍀 佩諭", proxy:"⛩️ 阿部", item:"🪴 観葉植物（会議室・廊下）", desc:""},
+  {id:"14", section:"小会議室", main:"🌷 慧心", proxy:"🎈 LuLu", item:"🪑 テーブルと椅子", desc:"椅子を戻す、テーブルと椅子の表面を拭く"},
+  {id:"15", section:"小会議室", main:"🌙 筱嬋", proxy:"🌷 慧心", item:"🪵 木製棚", desc:"表面を拭く"},
+  {id:"16", section:"小会議室", main:"🎈 LuLu", proxy:"🌙 筱嬋", item:"🪟 窓辺", desc:"表面を拭く"},
+  {id:"17", section:"倉庫", main:"🌟 小攸", proxy:"🌸 Yuka", item:"♨️ 電子レンジ", desc:"外側を拭く、定期的に内部と回転皿を洗う"},
+  {id:"18", section:"倉庫", main:"🌸 Yuka", proxy:"🎯 荒井", item:"🧊 冷蔵庫", desc:"外側を拭く、定期的に食品の期限を確認"},
+];
+
+// idは手動管理の固定値（表には表示されない）。新しい担当者を追加する時は、まだ使われていない新しいidを付ける。
+// 名前・部署・項目名・並び順を変えても、idが同じなら履歴は引き継がれる。
+// 離職などでidを引き継がないようにしたい場合は、新しいidの行を追加してください。
+function loadTasks(){
+  tasks = defaultTasks;
+}
+
+const PIN_KEY = 'souji_pinned_person';
+
+function extractName(str){
+  return (str || '').replace(/^\S+\s*/, '');
+}
+function getPinnedPerson(){
+  return localStorage.getItem(PIN_KEY);
+}
+function setPinnedPerson(name){
+  localStorage.setItem(PIN_KEY, name);
+}
+function clearPinned(){
+  localStorage.removeItem(PIN_KEY);
+}
+
+function checksKey(y,m){ return `${y}-${String(m+1).padStart(2,'0')}`; }
+
+function isWeekend(y,m,d){
+  const wd = new Date(y,m,d).getDay();
+  return wd===0 || wd===6;
+}
+
+function isPastDay(y,m,d){
+  const target = new Date(y,m,d);
+  target.setHours(0,0,0,0);
+  const now = new Date();
+  now.setHours(0,0,0,0);
+  return target < now;
+}
+
+let loadingOverlayTimer = null;
+function showLoadingOverlay(){
+  loadingOverlayTimer = setTimeout(()=>{
+    if(document.getElementById('loadingOverlay')) return;
+    celebrateFish();
+    const div = document.createElement('div');
+    div.id = 'loadingOverlay';
+    div.innerHTML = '<div class="loading-box"><div class="spinner"></div><div class="loading-text">データ読み込み中…</div></div>';
+    document.body.appendChild(div);
+  }, 200); // 讀取超過 200ms 才顯示遮罩，避免快速讀取時畫面閃一下
+}
+
+function hideLoadingOverlay(){
+  clearTimeout(loadingOverlayTimer);
+  const el = document.getElementById('loadingOverlay');
+  if(!el) return;
+  el.classList.add('fade-out');
+  setTimeout(()=>el.remove(), 250);
+}
+
+async function loadChecksForKey(key){
+  try{
+    const res = await fetch(`/api/checks/${key}`);
+    if(!res.ok) throw new Error('status ' + res.status);
+    checksByMonth[key] = await res.json();
+  }catch(e){
+    console.error('読み込みに失敗しました', e);
+    checksByMonth[key] = {};
+    showErrorDialog('データの読み込みに失敗しました。<br>ネットワーク接続を確認して<br>再度お試しください。', '🦖');
+  }
+}
+
+// 指定した年月のデータがまだ無ければ読み込む（複数月にまたがる週表示用）
+async function ensureChecksLoaded(y,m){
+  const key = checksKey(y,m);
+  if(checksByMonth[key]) return;
+  await loadChecksForKey(key);
+}
+
+// 現在の表示に必要な年月をすべて読み込む
+async function loadChecks(y,m){
+  await ensureChecksLoaded(y,m);
+  if(getViewMode() === 'week' && weekStart){
+    const friday = addDays(weekStart, 4);
+    await ensureChecksLoaded(friday.getFullYear(), friday.getMonth());
+  }
+}
+
+async function saveCheck(docKey, fieldKey, value){
+  try{
+    const res = await fetch(`/api/checks/${docKey}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fieldKey, value }),
+    });
+    if(!res.ok) throw new Error('status ' + res.status);
+  }catch(e){
+    console.error('保存に失敗しました', e);
+    showErrorDialog('保存に失敗しました。<br>ネットワーク接続を確認して<br>再度お試しください。', '🦖');
+  }
+}
+
+function daysInMonth(y,m){ return new Date(y, m+1, 0).getDate(); }
+
+function closeAllDropdowns(){
+  document.querySelectorAll('.dropdown-menu.open').forEach(m=>m.classList.remove('open'));
+}
+
+function setYearUI(y){
+  year = y;
+  document.getElementById('yearToggle').textContent = y + ' 年';
+  document.querySelectorAll('#yearMenu .dropdown-item').forEach(el=>{
+    el.classList.toggle('selected', parseInt(el.dataset.value) === y);
+  });
+}
+
+function setMonthUI(m){
+  month = m;
+  document.getElementById('monthToggle').textContent = (m+1) + ' 月';
+  document.querySelectorAll('#monthMenu .dropdown-item').forEach(el=>{
+    el.classList.toggle('selected', parseInt(el.dataset.value) === m);
+  });
+}
+
+function buildSelectors(){
+  const now = new Date();
+  const yearToggle = document.getElementById('yearToggle');
+  const monthToggle = document.getElementById('monthToggle');
+  const yearMenu = document.getElementById('yearMenu');
+  const monthMenu = document.getElementById('monthMenu');
+
+  yearMenu.innerHTML = '';
+  for(let y = now.getFullYear(); y <= now.getFullYear()+2; y++){
+    const item = document.createElement('div');
+    item.className = 'dropdown-item';
+    item.textContent = y + ' 年';
+    item.dataset.value = y;
+    yearMenu.appendChild(item);
+  }
+  monthMenu.innerHTML = '';
+  for(let m=0; m<12; m++){
+    const item = document.createElement('div');
+    item.className = 'dropdown-item';
+    item.textContent = (m+1) + ' 月';
+    item.dataset.value = m;
+    monthMenu.appendChild(item);
+  }
+
+  setYearUI(year);
+  setMonthUI(month);
+
+  yearToggle.onclick = (e)=>{
+    e.stopPropagation();
+    const isOpen = yearMenu.classList.contains('open');
+    closeAllDropdowns();
+    if(!isOpen) yearMenu.classList.add('open');
+  };
+  monthToggle.onclick = (e)=>{
+    e.stopPropagation();
+    const isOpen = monthMenu.classList.contains('open');
+    closeAllDropdowns();
+    if(!isOpen) monthMenu.classList.add('open');
+  };
+
+  yearMenu.onclick = async (e)=>{
+    const item = e.target.closest('.dropdown-item');
+    if(!item) return;
+    closeAllDropdowns();
+    setYearUI(parseInt(item.dataset.value));
+    weekStart = startOfWeekMonday(new Date(year, month, 1));
+    showLoadingOverlay();
+    await loadChecks(year,month);
+    render();
+    hideLoadingOverlay();
+  };
+  monthMenu.onclick = async (e)=>{
+    const item = e.target.closest('.dropdown-item');
+    if(!item) return;
+    closeAllDropdowns();
+    setMonthUI(parseInt(item.dataset.value));
+    weekStart = startOfWeekMonday(new Date(year, month, 1));
+    showLoadingOverlay();
+    await loadChecks(year,month);
+    render();
+    hideLoadingOverlay();
+  };
+
+  document.getElementById('weekPrevBtn').onclick = ()=> shiftWeek(-7);
+  document.getElementById('weekNextBtn').onclick = ()=> shiftWeek(7);
+
+  let resizeQueued = false;
+  let lastViewMode = getViewMode();
+  window.addEventListener('resize', ()=>{
+    if(resizeQueued) return;
+    resizeQueued = true;
+    requestAnimationFrame(()=>{
+      resizeQueued = false;
+      const mode = getViewMode();
+      if(mode !== lastViewMode){
+        lastViewMode = mode;
+        render();
+      }
+    });
+  });
+}
+
+async function shiftWeek(days){
+  weekStart = addDays(weekStart, days);
+  year = weekStart.getFullYear();
+  month = weekStart.getMonth();
+  setYearUI(year);
+  setMonthUI(month);
+  showLoadingOverlay();
+  await loadChecks(year, month);
+  render();
+  hideLoadingOverlay();
+  const wrap = document.querySelector('.table-wrap');
+  if(wrap){
+    wrap.classList.remove('week-anim-next', 'week-anim-prev');
+    void wrap.offsetWidth;
+    wrap.classList.add(days > 0 ? 'week-anim-next' : 'week-anim-prev');
+  }
+}
+
+document.addEventListener('click', closeAllDropdowns);
+document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape') closeAllDropdowns(); });
+
+function render(){
+  renderTable();
+  renderStats();
+  parseEmoji(document.getElementById('mainTable'));
+}
+
+function renderStats(){
+  const nd = daysInMonth(year, month);
+  const checks = getChecksForMonth(year, month);
+  let total = 0, done = 0;
+  tasks.forEach(t=>{
+    for(let d=1; d<=nd; d++){
+      if(isWeekend(year,month,d)) continue; // 土日は統計に含めない
+      total++;
+      if(checks[t.id+'-'+d]) done++;
+    }
+  });
+  const todayObj = new Date();
+  const isToday = todayObj.getFullYear()===year && todayObj.getMonth()===month;
+  const todayIsWeekend = isToday && isWeekend(year,month,todayObj.getDate());
+  let todayDone = 0, todayTotal = tasks.length;
+  if(isToday && !todayIsWeekend){
+    tasks.forEach(t=>{ if(checks[t.id+'-'+todayObj.getDate()]) todayDone++; });
+  }
+  const rate = total ? Math.round(done/total*100) : 0;
+  const todayLabel = (isToday && todayIsWeekend) ? '本日休み（土日）' : '本日の完了';
+  const todayValue = (isToday && todayIsWeekend) ? '—' : `${todayDone} / ${todayTotal}`;
+  const box = document.getElementById('statsBox');
+  box.innerHTML = `
+    <div class="stat-card"><div class="num">${rate}%</div><div class="label">今月の完了率</div></div>
+    <div class="stat-card"><div class="num">${done} / ${total}</div><div class="label">今月の完了数 / 全項目数</div></div>
+    <div class="stat-card"><div class="num">${todayValue}</div><div class="label">${todayLabel}</div></div>
+  `;
+  if(rate === 100 && lastRate !== 100) celebrateFish();
+  lastRate = rate;
+}
+
+// 月表示（総表）：選択中の月の全日付（土日も含む）
+function monthColumns(y, m){
+  const nd = daysInMonth(y, m);
+  const cols = [];
+  for(let d=1; d<=nd; d++){
+    cols.push({y, m, d, weekend: isWeekend(y, m, d)});
+  }
+  return cols;
+}
+
+// 週表示：weekStart（月曜日）から金曜日までの5日分
+function weekColumns(start){
+  const cols = [];
+  for(let i=0; i<5; i++){
+    const dt = addDays(start, i);
+    cols.push({y: dt.getFullYear(), m: dt.getMonth(), d: dt.getDate(), weekend: false});
+  }
+  return cols;
+}
+
+function updateWeekNav(viewMode, columns){
+  const nav = document.getElementById('weekNav');
+  nav.classList.toggle('active', viewMode === 'week');
+  if(viewMode !== 'week') return;
+  const first = columns[0], last = columns[columns.length-1];
+  const label = document.getElementById('weekNavLabel');
+  label.textContent = (first.m+1) + '/' + first.d + ' 〜 ' + (last.m+1) + '/' + last.d;
+}
+
+function renderTable(){
+  const viewMode = getViewMode();
+  const columns = viewMode === 'month' ? monthColumns(year, month) : weekColumns(weekStart);
+  updateWeekNav(viewMode, columns);
+
+  const table = document.getElementById('mainTable');
+  table.innerHTML = '';
+
+  const thead = document.createElement('thead');
+  const headRow = document.createElement('tr');
+  ['担当','代理','項目'].forEach(label=>{
+    const th = document.createElement('th');
+    const extraClass = label==='代理' ? ' proxy' : label==='項目' ? ' item' : '';
+    th.className = 'colhead' + extraClass;
+    th.textContent = label;
+    th.style.minWidth = label==='項目' ? '160px' : '90px';
+    headRow.appendChild(th);
+  });
+  const now = new Date();
+  const todayY = now.getFullYear(), todayM = now.getMonth(), todayD = now.getDate();
+
+  columns.forEach(col=>{
+    const wd = new Date(col.y, col.m, col.d).getDay();
+    const th = document.createElement('th');
+    th.className = 'daynum' + ((wd===0||wd===6) ? ' weekend' : '');
+    th.innerHTML = col.d + '<br>' + WEEK[wd];
+    headRow.appendChild(th);
+  });
+  thead.appendChild(headRow);
+  table.appendChild(thead);
+
+  const tbody = document.createElement('tbody');
+
+  const pinnedPerson = getPinnedPerson();
+  const pinnedTasks = pinnedPerson ? tasks.filter(t => extractName(t.main) === pinnedPerson) : [];
+  const restTasks = pinnedPerson ? tasks.filter(t => extractName(t.main) !== pinnedPerson) : tasks;
+
+  if(pinnedPerson && pinnedTasks.length){
+    const pinRow = document.createElement('tr');
+    pinRow.className = 'pinned-row';
+    const pinTd = document.createElement('td');
+    pinTd.colSpan = 3 + columns.length;
+    pinTd.textContent = '📌 ' + pinnedTasks[0].main;
+    pinRow.appendChild(pinTd);
+    tbody.appendChild(pinRow);
+    pinnedTasks.forEach(t=> tbody.appendChild(buildTaskRow(t, columns, todayY, todayM, todayD)));
+  }
+
+  let curSection = null;
+  restTasks.forEach((t, idx)=>{
+    if(t.section !== curSection){
+      curSection = t.section;
+      const secRow = document.createElement('tr');
+      secRow.className = 'section-row';
+      const td = document.createElement('td');
+      td.colSpan = 3 + columns.length;
+      td.textContent = curSection;
+      secRow.appendChild(td);
+      tbody.appendChild(secRow);
+    }
+    tbody.appendChild(buildTaskRow(t, columns, todayY, todayM, todayD));
+  });
+  table.appendChild(tbody);
+}
+
+function buildTaskRow(t, columns, todayY, todayM, todayD){
+  const tr = document.createElement('tr');
+
+  const mainTd = document.createElement('td');
+  mainTd.className = 'rowlabel pinnable';
+  mainTd.textContent = t.main;
+  mainTd.title = 'クリックすると次回からこの担当の項目が一番上に表示されます';
+  mainTd.onclick = ()=>{
+    setPinnedPerson(extractName(t.main));
+    render();
+  };
+  tr.appendChild(mainTd);
+
+  const proxyTd = document.createElement('td');
+  proxyTd.className = 'rowlabel proxy';
+  proxyTd.textContent = t.proxy || '';
+  tr.appendChild(proxyTd);
+
+  const itemTd = document.createElement('td');
+  itemTd.className = 'rowlabel item';
+  itemTd.appendChild(document.createTextNode(t.item));
+  if(t.desc){
+    const hint = document.createElement('span');
+    hint.className = 'desc-hint';
+    hint.textContent = '?';
+    hint.dataset.tip = t.desc;
+    itemTd.appendChild(hint);
+  }
+  tr.appendChild(itemTd);
+
+  columns.forEach(col=>{
+    const weekend = col.weekend;
+    const isToday = col.y===todayY && col.m===todayM && col.d===todayD;
+    const cellTd = document.createElement('td');
+    cellTd.className = 'cell' + (weekend ? ' weekend-col' : '') + (isToday && !weekend ? ' today-col' : '');
+    const docKey = checksKey(col.y, col.m);
+    const key = t.id+'-'+col.d;
+    const checks = getChecksForMonth(col.y, col.m);
+    const box = document.createElement('div');
+
+    if(weekend){
+      box.className = 'check offday';
+      cellTd.appendChild(box);
+      cellTd.title = '土日は休みです';
+      // 土日はクリック不可
+    }else{
+      const overdue = !checks[key] && isPastDay(col.y, col.m, col.d);
+      box.className = 'check' + (checks[key] ? ' done' : '') + (overdue ? ' overdue' : '');
+      box.textContent = checks[key] ? '😊' : '';
+      cellTd.appendChild(box);
+      cellTd.onclick = async ()=>{
+        checks[key] = !checks[key];
+        checksByMonth[docKey] = checks;
+        box.classList.toggle('done', !!checks[key]);
+        box.classList.toggle('overdue', !checks[key] && isPastDay(col.y, col.m, col.d));
+        box.textContent = checks[key] ? '😊' : '';
+        parseEmoji(box);
+        if(checks[key]){
+          const r = cellTd.getBoundingClientRect();
+          burstBubblePop(r.left + r.width/2, r.top + r.height/2);
+        }
+        renderStats();
+        await saveCheck(docKey, key, checks[key]);
+      };
+    }
+    tr.appendChild(cellTd);
+  });
+  return tr;
+}
+
+document.getElementById('todayBtn').onclick = async ()=>{
+  const now = new Date();
+  const sameMonth = (year === now.getFullYear() && month === now.getMonth());
+  const sameWeek = weekStart && +weekStart === +startOfWeekMonday(now);
+  if(sameMonth && sameWeek) return;
+  year = now.getFullYear(); month = now.getMonth();
+  weekStart = startOfWeekMonday(now);
+  setYearUI(year);
+  setMonthUI(month);
+  showLoadingOverlay();
+  await loadChecks(year, month);
+  render();
+  hideLoadingOverlay();
+};
+
+document.getElementById('footerReset').onclick = ()=>{
+  clearPinned();
+  render();
+};
+
+async function init(){
+  celebrateFish();
+  const now = new Date();
+  year = now.getFullYear(); month = now.getMonth();
+  weekStart = startOfWeekMonday(now);
+  loadTasks();
+  buildSelectors();
+  render();
+  await loadChecks(year, month);
+  hideLoadingOverlay();
+  render();
+}
+init();
+</script>
+</body>
+</html>

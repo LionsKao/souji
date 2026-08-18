@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cline x1='74' y1='8' x2='40' y2='54' stroke='%230f6e56' stroke-width='8' stroke-linecap='round'/%3E%3Crect x='29' y='48' width='22' height='11' rx='3' transform='rotate(37 40 54)' fill='%230f6e56'/%3E%3Cpath d='M40 54 L14 92 M40 54 L26 95 M40 54 L40 97 M40 54 L54 94 M40 54 L64 88' stroke='%23c9a24b' stroke-width='5' stroke-linecap='round' fill='none'/%3E%3C/svg%3E">
+<title>404</title>
+<style>
+  :root{
+    --ink:#0e3b3a; --sub:#4c7a76; --line:#d7ede4;
+    --card:#faf3b8; --accent:#0ea79a; --accent-bg:#d3f3ec;
+  }
+  *{box-sizing:border-box;}
+  img.emoji{height:1em; width:1em; margin:0 .05em 0 .1em; vertical-align:-0.05em;}
+  .cannot-select{
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  body{
+    margin:0; padding:20px; color:var(--ink);
+    font-family:"Noto Sans JP","Hiragino Sans","Yu Gothic",sans-serif;
+    min-height:100vh;
+    background:linear-gradient(135deg, #167e93 0%, #3fb8c4 50%, #8fe8d8 100%);
+    position:relative;
+    overflow-x:hidden;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+  }
+  .hero404{
+    position:relative; z-index:1; text-align:center; margin-bottom:8px;
+  }
+  body::before, body::after{
+    content:''; position:fixed; border-radius:50%; pointer-events:none; z-index:0;
+    background:
+      radial-gradient(circle, transparent 53%, rgba(255,255,255,0.14) 57%, rgba(255,255,255,0.14) 61%, transparent 65%),
+      radial-gradient(circle, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 45%, transparent 72%);
+  }
+  body::before{
+    width:280px; height:280px;
+    top:-50px; right:-50px;
+  }
+  body::after{
+    width:220px; height:220px;
+    bottom:-30px; left:-30px;
+  }
+  .sheet{
+    position:relative; z-index:1;
+    background:var(--card); border-radius:28px; padding:44px 36px;
+    border:3px solid var(--ink);
+    box-shadow:0 8px 0 var(--ink), 0 20px 46px rgba(6,50,45,0.28);
+    text-align:center; width:90%; max-width:450px;
+  }
+  .code{
+    position:relative;
+    font-size:42px; font-weight:900; margin:0 0 6px; color:#fdf3ba;
+    text-shadow:3px 3px 0 #142a4d, 3px 3px 6px rgba(20,42,77,0.3);
+  }
+  .error-icon{font-size:40px; margin-bottom:8px; transform:scaleX(-1); display:inline-block;}
+  .error-icon.dino-jump{animation:dinoJump 0.5s ease-out;}
+  @keyframes dinoJump{
+    0%{ transform:scaleX(-1) translateY(0); }
+    40%{ transform:scaleX(-1) translateY(-22px); }
+    100%{ transform:scaleX(-1) translateY(0); }
+  }
+  .error-icon.dino-escape{animation:dinoEscape linear forwards;}
+  @keyframes dinoEscape{
+    from{ transform:scaleX(-1) translateX(0); }
+    to{ transform:scaleX(-1) translateX(-150vw); }
+  }
+  h1{font-size:19px; font-weight:800; margin:0 0 10px; color:#08322f;}
+  p.desc{color:#0e3b3a; font-size:14px; line-height:1.6; margin:0 0 26px;}
+  a.home-btn{
+    display:inline-block; text-decoration:none;
+    background:var(--accent); color:#fff; font-weight:700; font-size:14px;
+    padding:10px 26px; border-radius:999px;
+    border:2.5px solid var(--ink);
+    box-shadow:0 4px 0 var(--ink);
+    transition:transform .08s, box-shadow .08s;
+  }
+  a.home-btn:hover{transform:translateY(2px); box-shadow:0 2px 0 var(--ink);}
+  a.home-btn:active{transform:translateY(4px); box-shadow:0 0 0 var(--ink);}
+
+  .bubble-particle{
+    position:fixed; bottom:-20px; border-radius:50%; pointer-events:none; z-index:0;
+    background:transparent;
+    border:1.5px solid rgba(255,255,255,0.6);
+    box-shadow: inset 0 0 4px rgba(255,255,255,0.25);
+  }
+</style>
+</head>
+<body class="cannot-select">
+
+<div id="bubbleLayer"></div>
+<script>
+  const BUBBLE_COUNT = 35;
+
+  function getRandomArbitrary(min, max){
+    return Math.random() * (max - min) + min;
+  }
+
+  function getOrCreateBubbleCSSElement(){
+    let el = document.getElementById('bubble-css');
+    if(el) return el;
+    el = document.createElement('style');
+    el.id = 'bubble-css';
+    document.head.appendChild(el);
+    return el;
+  }
+
+  function createBubbles(count){
+    const layer = document.getElementById('bubbleLayer');
+    const fragment = document.createDocumentFragment();
+    let cssRule = '';
+
+    for(let i = 0; i < count; i++){
+      const el = document.createElement('div');
+      el.className = 'bubble-particle bubble-' + i;
+
+      const size = getRandomArbitrary(12, 30);
+      el.style.width = size + 'px';
+      el.style.height = size + 'px';
+      fragment.appendChild(el);
+
+      const startX = Math.random() * 100;
+      const drift = getRandomArbitrary(-8, 8);
+      const midX = drift * 0.5;
+      const duration = getRandomArbitrary(20, 32).toFixed(2);
+      const delay = (Math.random() * duration * -1).toFixed(2);
+      const opacity = getRandomArbitrary(0.25, 0.6).toFixed(2);
+
+      cssRule += `
+        .bubble-${i}{
+          left:${startX}vw;
+          opacity:${opacity};
+          animation: bubble-rise-${i} ${duration}s ${delay}s linear infinite;
+        }
+        @keyframes bubble-rise-${i}{
+          0%{ transform: translate(0, 0); }
+          50%{ transform: translate(${midX}vw, -55vh); }
+          100%{ transform: translate(${drift}vw, -115vh); }
+        }
+      `;
+    }
+
+    layer.appendChild(fragment);
+    getOrCreateBubbleCSSElement().innerHTML = cssRule;
+  }
+
+  createBubbles(BUBBLE_COUNT);
+</script>
+
+<div class="hero404">
+  <p class="code">404</p>
+</div>
+
+<div class="sheet">
+  <div class="error-icon">🦖</div>
+  <h1>ページが見つかりません</h1>
+  <p class="desc">お探しのページは<br>移動または削除された可能性があります。<br>URLをご確認のうえ、もう一度お試しください。</p>
+  <a class="home-btn" href="/">トップページに戻る</a>
+</div>
+
+<script src="https://unpkg.com/twemoji@latest/dist/twemoji.min.js" crossorigin="anonymous"></script>
+<script>
+  const dino = document.querySelector('.error-icon');
+  if(window.twemoji) twemoji.parse(dino); // Twemoji 載入失敗時就維持原生 emoji，不中斷程式
+
+  setTimeout(()=>{
+    dino.classList.add('dino-jump');
+    setTimeout(()=>{
+      dino.classList.remove('dino-jump');
+      const speedPxPerSec = 400; // 固定速度，螢幕越寬時長越長，速度不變
+      const distancePx = window.innerWidth * 1.5;
+      dino.style.animationDuration = (distancePx / speedPxPerSec) + 's';
+      dino.classList.add('dino-escape');
+    }, 500);
+  }, 5000);
+</script>
+
+</body>
+</html>
